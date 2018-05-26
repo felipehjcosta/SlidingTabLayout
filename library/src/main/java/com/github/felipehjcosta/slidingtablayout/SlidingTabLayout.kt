@@ -42,7 +42,7 @@ import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer
 class SlidingTabLayout : HorizontalScrollView {
 
     private var titleOffset: Int = 0
-    private var mFooterIndicatorHeight: Float = 0.toFloat()
+    private var mFooterIndicatorHeight: Float = 0.0f
 
     private var tabViewLayoutId: Int = 0
     private var tabViewTextViewId: Int = 0
@@ -220,14 +220,14 @@ class SlidingTabLayout : HorizontalScrollView {
             i++
         }
 
-        runOnGlobalLayout(tabStrip, ViewTreeObserver.OnGlobalLayoutListener {
-            val firstView = tabStrip.getChildAt(0)
-            val lastView = tabStrip.getChildAt(tabStrip.childCount - 1)
-            tabStrip.addView(Space(context), 0,
+        tabStrip.doOnGlobalLayout {
+            val firstView = it.getChildAt(0)
+            val lastView = it.getChildAt(tabStrip.childCount - 1)
+            it.addView(Space(context), 0,
                     FrameLayout.LayoutParams((right - firstView.width) / 2, ViewGroup.LayoutParams.WRAP_CONTENT))
-            tabStrip.addView(Space(context),
+            it.addView(Space(context),
                     FrameLayout.LayoutParams((right - lastView.width) / 2, ViewGroup.LayoutParams.WRAP_CONTENT))
-        })
+        }
     }
 
     fun setContentDescription(i: Int, desc: String) {
@@ -301,7 +301,10 @@ class SlidingTabLayout : HorizontalScrollView {
         }
     }
 
-    internal inner class SlidingTabStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : LinearLayout(context, attrs) {
+    internal inner class SlidingTabStrip @JvmOverloads constructor(
+            context: Context,
+            attrs: AttributeSet? = null
+    ) : LinearLayout(context, attrs) {
 
         private val bottomBorderThickness: Int
         private val bottomBorderPaint: Paint
@@ -314,7 +317,7 @@ class SlidingTabLayout : HorizontalScrollView {
         private val path: Path
 
         private var selectedPosition: Int = 0
-        private var selectionOffset: Float = 0.toFloat()
+        private var selectionOffset: Float = 0.0f
 
         private var customTabColorizer: SlidingTabLayout.TabColorizer? = null
         private val defaultTabColorizer: SimpleTabColorizer
@@ -474,21 +477,21 @@ class SlidingTabLayout : HorizontalScrollView {
             return convertDpToPixel(dp.toFloat(), context).toInt()
         }
 
-        fun runOnGlobalLayout(view: View, listener: ViewTreeObserver.OnGlobalLayoutListener) {
-            view.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+        private inline fun <T : View> T.doOnGlobalLayout(crossinline block: (T) -> Unit) {
+            viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
-                    listener.onGlobalLayout()
-                    removeOnGlobalLayoutListener(view, this)
+                    block(this@doOnGlobalLayout)
+                    viewTreeObserver.removeOnGlobalLayoutListener(this)
                 }
             })
         }
 
         @SuppressLint("NewApi")
-        fun removeOnGlobalLayoutListener(view: View, listener: ViewTreeObserver.OnGlobalLayoutListener) {
+        private fun ViewTreeObserver.removeOnGlobalLayoutListener(listener: ViewTreeObserver.OnGlobalLayoutListener) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+                removeOnGlobalLayoutListener(listener)
             } else {
-                view.viewTreeObserver.removeGlobalOnLayoutListener(listener)
+                removeGlobalOnLayoutListener(listener)
             }
         }
     }
