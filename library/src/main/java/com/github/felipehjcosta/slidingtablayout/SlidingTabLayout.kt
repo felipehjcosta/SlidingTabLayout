@@ -1,7 +1,6 @@
 package com.github.felipehjcosta.slidingtablayout
 
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.content.Context
 import android.graphics.*
 import android.os.Build
@@ -41,8 +40,8 @@ import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer
  */
 class SlidingTabLayout : HorizontalScrollView {
 
-    private var titleOffset: Int = 0
-    private var mFooterIndicatorHeight: Float = 0.0f
+    private var titleOffset = 0
+    private var mFooterIndicatorHeight = 0.0f
 
     private var tabViewLayoutId: Int = 0
     private var tabViewTextViewId: Int = 0
@@ -54,31 +53,12 @@ class SlidingTabLayout : HorizontalScrollView {
 
     private val tabStrip: SlidingTabStrip
 
-    /**
-     * Allows complete control over the colors drawn in the tab layout. Set with
-     * [.setCustomTabColorizer].
-     */
-    interface TabColorizer {
-
-        /**
-         * @return return the color of the indicator used when `position` is selected.
-         */
-        fun getIndicatorColor(position: Int): Int
-
-    }
-
     @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : super(context, attrs, defStyle) {
         tabStrip = SlidingTabStrip(context)
         addView(tabStrip, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT)
         init(context, attrs)
     }
 
-    @TargetApi(21)
-    constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(context, attrs, defStyleAttr, defStyleRes) {
-        tabStrip = SlidingTabStrip(context)
-        addView(tabStrip, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT)
-        init(context, attrs)
-    }
 
     private fun init(context: Context, attrs: AttributeSet?) {
         // Disable the Scroll Bar
@@ -149,7 +129,7 @@ class SlidingTabLayout : HorizontalScrollView {
      * Create a default view to be used for tabs. This is called if a custom tab view is not set via
      * [.setCustomTabView].
      */
-    protected fun createDefaultTabView(context: Context): TextView {
+    private fun createDefaultTabView(context: Context): TextView {
         val textView = TextView(context)
         textView.gravity = Gravity.CENTER
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, TAB_VIEW_TEXT_SIZE_SP.toFloat())
@@ -194,7 +174,7 @@ class SlidingTabLayout : HorizontalScrollView {
                 tabView = createDefaultTabView(context)
             }
 
-            if (tabTitleView == null && TextView::class.java!!.isInstance(tabView)) {
+            if (tabTitleView == null && TextView::class.java.isInstance(tabView)) {
                 tabTitleView = tabView as TextView?
             }
 
@@ -261,9 +241,18 @@ class SlidingTabLayout : HorizontalScrollView {
 
     private inner class InternalViewPagerListener : ViewPager.OnPageChangeListener {
         private var mScrollState: Int = 0
+        private var sumPositionAndPositionOffset = 0.0f
 
         override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
-            tabStrip.onViewPagerPageChanged(position + 1, positionOffset)
+            val currentSumPositionAndPositionOffset = position + positionOffset
+            if (positionOffset == 0.0f) {
+                tabStrip.scrollState = ScrollState.Idle(position + 1, 0.0f)
+            } else if (currentSumPositionAndPositionOffset > sumPositionAndPositionOffset) {
+                tabStrip.scrollState = ScrollState.DraggingToLeft(position + 1, positionOffset)
+            } else {
+                tabStrip.scrollState = ScrollState.DraggingToRight(position + 1, positionOffset)
+            }
+            sumPositionAndPositionOffset = currentSumPositionAndPositionOffset
 
             val selectedTitle = tabStrip.getChildAt(position + 1)
             val extraOffset = if (selectedTitle != null)
@@ -271,7 +260,6 @@ class SlidingTabLayout : HorizontalScrollView {
             else
                 0
             scrollToTab(position + 1, extraOffset)
-
         }
 
         override fun onPageScrollStateChanged(state: Int) {
@@ -279,11 +267,11 @@ class SlidingTabLayout : HorizontalScrollView {
         }
 
         override fun onPageSelected(position: Int) {
-            if (mScrollState == ViewPager.SCROLL_STATE_IDLE) {
-                val selectedView = tabStrip.getChildAt(position + 1)
-                tabStrip.onViewPagerPageChanged(position + 1, (selectedView.width / 2).toFloat())
-                scrollToTab(position + 1, 0)
-            }
+//            if (mScrollState == ViewPager.SCROLL_STATE_IDLE) {
+//                val selectedView = tabStrip.getChildAt(position + 1)
+//                tabStrip.scrollState = ScrollState.Idle(position + 1, (selectedView.width / 2).toFloat())
+//                scrollToTab(position + 1, 0)
+//            }
             for (i in 1 until tabStrip.childCount) {
                 tabStrip.getChildAt(i).isSelected = position == i
             }
@@ -316,8 +304,12 @@ class SlidingTabLayout : HorizontalScrollView {
 
         private val path: Path
 
-        private var selectedPosition: Int = 0
-        private var selectionOffset: Float = 0.0f
+        var scrollState: ScrollState = ScrollState.Idle(0, 0.0f)
+            set(value) {
+                field = value
+                Log.e("TAG", ">>>> newState: $field")
+                invalidate()
+            }
 
         private var customTabColorizer: SlidingTabLayout.TabColorizer? = null
         private val defaultTabColorizer: SimpleTabColorizer
@@ -362,12 +354,6 @@ class SlidingTabLayout : HorizontalScrollView {
             invalidate()
         }
 
-        fun onViewPagerPageChanged(position: Int, positionOffset: Float) {
-            selectedPosition = position
-            selectionOffset = positionOffset
-            invalidate()
-        }
-
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             val width = measuredWidth
@@ -382,26 +368,32 @@ class SlidingTabLayout : HorizontalScrollView {
             val tabColorizer = customTabColorizer ?: defaultTabColorizer
 
             // Thick colored underline below the current selection
+            val selectedPosition = scrollState.currentPosition
+            val selectionOffset = scrollState.offset
             if (childCount > 0) {
                 val selectedTitle = getChildAt(selectedPosition)
                 var left = selectedTitle.left
-                val right = selectedTitle.right
+//                val right = selectedTitle.right
                 var color = tabColorizer.getIndicatorColor(selectedPosition - 1)
 
-                var nextTitleWidth = 0
-                var nextTitle = getChildAt(selectedPosition)
-                Log.e(javaClass.getSimpleName(), ">>> selectedPosition: $selectedPosition, selectionOffset: $selectionOffset")
-                val tabStripCountWithoutSpaces = tabStrip.childCount - 2
-                if (selectionOffset > 0f && selectedPosition < tabStripCountWithoutSpaces - 1) {
-                    val indicatorColor = selectedPosition + if (selectedPosition < tabStripCountWithoutSpaces - 1) 1 else 0
-                    val nextColor = tabColorizer.getIndicatorColor(indicatorColor)
-                    if (color != nextColor) {
-                        color = blendColors(nextColor, color, selectionOffset)
+                val nextTitle = when (scrollState) {
+                    is ScrollState.Idle -> getChildAt(selectedPosition)
+                    is ScrollState.DraggingToLeft -> {
+                        val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
+                        if (color != nextColor) {
+                            color = blendColors(nextColor, color, selectionOffset)
+                        }
+                        getChildAt(selectedPosition + 1)
                     }
-
-                    nextTitle = getChildAt(selectedPosition + 1)
+                    is ScrollState.DraggingToRight -> {
+                        val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
+                        if (color != nextColor) {
+                            color = blendColors(nextColor, color, selectionOffset)
+                        }
+                        getChildAt(selectedPosition - 1)
+                    }
                 }
-                nextTitleWidth = nextTitle.width
+                val nextTitleWidth = nextTitle.width
                 left = (selectionOffset * nextTitle.left + (1.0f - selectionOffset) * left).toInt() + nextTitleWidth / 2
 
                 selectedIndicatorPaint.color = color
@@ -453,6 +445,18 @@ class SlidingTabLayout : HorizontalScrollView {
 
     }
 
+    sealed class ScrollState(val currentPosition: Int, val offset: Float) {
+        class DraggingToRight(currentPosition: Int, offset: Float) : ScrollState(currentPosition, offset)
+        class DraggingToLeft(currentPosition: Int, offset: Float) : ScrollState(currentPosition, offset)
+        class Idle(currentPosition: Int, offset: Float) : ScrollState(currentPosition, offset)
+
+        override fun toString(): String {
+            return "${javaClass.simpleName}(currentPosition=$currentPosition, offset=$offset)"
+        }
+
+
+    }
+
     companion object {
 
         private val DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS = 0
@@ -494,6 +498,19 @@ class SlidingTabLayout : HorizontalScrollView {
                 removeGlobalOnLayoutListener(listener)
             }
         }
+    }
+
+    /**
+     * Allows complete control over the colors drawn in the tab layout. Set with
+     * [.setCustomTabColorizer].
+     */
+    interface TabColorizer {
+
+        /**
+         * @return return the color of the indicator used when `position` is selected.
+         */
+        fun getIndicatorColor(position: Int): Int
+
     }
 }
 
