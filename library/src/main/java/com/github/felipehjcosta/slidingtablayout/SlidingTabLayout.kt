@@ -14,6 +14,8 @@ import android.util.SparseArray
 import android.util.TypedValue
 import android.view.*
 import android.widget.FrameLayout
+import android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -38,7 +40,11 @@ import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer
  * The views used as tabs can be customized by calling [.setCustomTabView],
  * providing the layout ID of your custom layout.
  */
-class SlidingTabLayout : HorizontalScrollView {
+class SlidingTabLayout @JvmOverloads constructor(
+        context: Context,
+        attrs: AttributeSet? = null,
+        defStyle: Int = 0
+) : HorizontalScrollView(context, attrs, defStyle) {
 
     private var titleOffset = 0
     private var mFooterIndicatorHeight = 0.0f
@@ -51,16 +57,10 @@ class SlidingTabLayout : HorizontalScrollView {
     private val contentDescriptions = SparseArray<String>()
     private var viewPagerPageChangeListener: ViewPager.OnPageChangeListener? = null
 
-    private val tabStrip: SlidingTabStrip
+    private val tabStrip: SlidingTabStrip = SlidingTabStrip(context)
 
-    @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : super(context, attrs, defStyle) {
-        tabStrip = SlidingTabStrip(context)
-        addView(tabStrip, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT)
-        init(context, attrs)
-    }
-
-
-    private fun init(context: Context, attrs: AttributeSet?) {
+    init {
+        addView(tabStrip, MATCH_PARENT, WRAP_CONTENT)
         // Disable the Scroll Bar
         isHorizontalScrollBarEnabled = false
         // Make sure that the Tab Strips fills this View
@@ -505,4 +505,3 @@ class SlidingTabLayout : HorizontalScrollView {
 
     }
 }
-
