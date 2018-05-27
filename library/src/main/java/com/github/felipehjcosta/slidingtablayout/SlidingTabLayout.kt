@@ -1,9 +1,7 @@
 package com.github.felipehjcosta.slidingtablayout
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
-import android.os.Build
 import android.support.annotation.IdRes
 import android.support.annotation.LayoutRes
 import android.support.v4.view.ViewPager
@@ -11,7 +9,10 @@ import android.util.AttributeSet
 import android.util.Log
 import android.util.SparseArray
 import android.util.TypedValue
-import android.view.*
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import android.widget.FrameLayout.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
@@ -437,8 +438,6 @@ class SlidingTabLayout @JvmOverloads constructor(
         override fun toString(): String {
             return "${javaClass.simpleName}(currentPosition=$currentPosition, offset=$offset)"
         }
-
-
     }
 
     companion object {
@@ -462,24 +461,6 @@ class SlidingTabLayout @JvmOverloads constructor(
 
         private fun convertDpToPixel(dp: Int, context: Context): Int {
             return convertDpToPixel(dp.toFloat(), context).toInt()
-        }
-
-        private inline fun <T : View> T.doOnGlobalLayout(crossinline block: (T) -> Unit) {
-            viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    block(this@doOnGlobalLayout)
-                    viewTreeObserver.removeOnGlobalLayoutListenerIncludingBellowJellyBean(this)
-                }
-            })
-        }
-
-        @SuppressLint("NewApi")
-        private fun ViewTreeObserver.removeOnGlobalLayoutListenerIncludingBellowJellyBean(listener: ViewTreeObserver.OnGlobalLayoutListener) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                removeOnGlobalLayoutListener(listener)
-            } else {
-                removeGlobalOnLayoutListener(listener)
-            }
         }
     }
 
