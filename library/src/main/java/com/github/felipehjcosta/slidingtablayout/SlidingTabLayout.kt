@@ -43,17 +43,17 @@ class SlidingTabLayout @JvmOverloads constructor(
 ) : HorizontalScrollView(context, attrs, defStyle) {
 
     private var titleOffset = 0
-    private var mFooterIndicatorHeight = 0.0f
+    private var footerIndicatorHeight = 0.0f
 
-    private var tabViewLayoutId: Int = 0
-    private var tabViewTextViewId: Int = 0
-    private var distributeEvenly: Boolean = false
+    private var tabViewLayoutId = 0
+    private var tabViewTextViewId = 0
+    private var distributeEvenly = false
 
     private var viewPager: ViewPager? = null
     private val contentDescriptions = SparseArray<String>()
     private var viewPagerPageChangeListener: ViewPager.OnPageChangeListener? = null
 
-    private val tabStrip: SlidingTabStrip = SlidingTabStrip(context)
+    private val tabStrip = SlidingTabStrip(context)
 
     init {
         addView(tabStrip, MATCH_PARENT, WRAP_CONTENT)
@@ -64,7 +64,7 @@ class SlidingTabLayout @JvmOverloads constructor(
 
         titleOffset = (TITLE_OFFSET_DIPS * resources.displayMetrics.density).toInt()
 
-        mFooterIndicatorHeight = convertDpToPixel(20, context).toFloat()
+        footerIndicatorHeight = convertDpToPixel(20, context).toFloat()
         viewPagerPageChangeListener = InternalViewPagerListener()
     }
 
@@ -110,13 +110,11 @@ class SlidingTabLayout @JvmOverloads constructor(
     fun setViewPager(viewPager: ViewPager?) {
         tabStrip.removeAllViews()
 
-        if (this.viewPager != null) {
-            this.viewPager!!.removeOnPageChangeListener(viewPagerPageChangeListener!!)
-        }
+        this.viewPager?.removeOnPageChangeListener(viewPagerPageChangeListener!!)
 
         this.viewPager = viewPager
-        if (viewPager != null) {
-            viewPager.addOnPageChangeListener(viewPagerPageChangeListener!!)
+        this.viewPager?.let {
+            it.addOnPageChangeListener(viewPagerPageChangeListener!!)
             populateTabStrip()
         }
     }
@@ -236,17 +234,15 @@ class SlidingTabLayout @JvmOverloads constructor(
     }
 
     private inner class InternalViewPagerListener : ViewPager.OnPageChangeListener {
-        private var mScrollState: Int = 0
+        private var viewPagerScrollState = 0
         private var sumPositionAndPositionOffset = 0.0f
 
         override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
             val currentSumPositionAndPositionOffset = position + positionOffset
-            if (positionOffset == 0.0f) {
-                tabStrip.scrollState = ScrollState.Idle(position + 1, 0.0f)
-            } else if (currentSumPositionAndPositionOffset > sumPositionAndPositionOffset) {
-                tabStrip.scrollState = ScrollState.DraggingToLeft(position + 1, positionOffset)
-            } else {
-                tabStrip.scrollState = ScrollState.DraggingToRight(position + 1, positionOffset)
+            tabStrip.scrollState = when {
+                positionOffset == 0.0f -> ScrollState.Idle(position + 1, 0.0f)
+                currentSumPositionAndPositionOffset > sumPositionAndPositionOffset -> ScrollState.DraggingToLeft(position + 1, positionOffset)
+                else -> ScrollState.DraggingToRight(position + 1, positionOffset)
             }
             sumPositionAndPositionOffset = currentSumPositionAndPositionOffset
 
@@ -259,11 +255,11 @@ class SlidingTabLayout @JvmOverloads constructor(
         }
 
         override fun onPageScrollStateChanged(state: Int) {
-            mScrollState = state
+            viewPagerScrollState = state
         }
 
         override fun onPageSelected(position: Int) {
-//            if (mScrollState == ViewPager.SCROLL_STATE_IDLE) {
+//            if (viewPagerScrollState == ViewPager.SCROLL_STATE_IDLE) {
 //                val selectedView = tabStrip.getChildAt(position + 1)
 //                tabStrip.scrollState = ScrollState.Idle(position + 1, (selectedView.width / 2).toFloat())
 //                scrollToTab(position + 1, 0)
@@ -353,7 +349,7 @@ class SlidingTabLayout @JvmOverloads constructor(
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             val width = measuredWidth
-            val height = (measuredHeight + mFooterIndicatorHeight).toInt()
+            val height = (measuredHeight + footerIndicatorHeight).toInt()
 
             setMeasuredDimension(width, height)
         }
@@ -389,9 +385,9 @@ class SlidingTabLayout @JvmOverloads constructor(
                 val heightMinusLine = height - footerLineHeight
 
                 path.reset()
-                path.moveTo(left.toFloat(), heightMinusLine - mFooterIndicatorHeight)
-                path.lineTo(left + mFooterIndicatorHeight, heightMinusLine)
-                path.lineTo(left - mFooterIndicatorHeight, heightMinusLine)
+                path.moveTo(left.toFloat(), heightMinusLine - footerIndicatorHeight)
+                path.lineTo(left + footerIndicatorHeight, heightMinusLine)
+                path.lineTo(left - footerIndicatorHeight, heightMinusLine)
                 path.close()
                 canvas.drawPath(path, selectedIndicatorPaint)
             }
@@ -412,7 +408,7 @@ class SlidingTabLayout @JvmOverloads constructor(
          * 0.0 will return `color2`.
          */
         private fun blendColors(color1: Int, color2: Int, ratio: Float): Int {
-            val inverseRation = 1f - ratio
+            val inverseRation = 1.0f - ratio
             val r = Color.red(color1) * ratio + Color.red(color2) * inverseRation
             val g = Color.green(color1) * ratio + Color.green(color2) * inverseRation
             val b = Color.blue(color1) * ratio + Color.blue(color2) * inverseRation
@@ -420,14 +416,14 @@ class SlidingTabLayout @JvmOverloads constructor(
         }
 
         private inner class SimpleTabColorizer : SlidingTabLayout.TabColorizer {
-            private var mIndicatorColors: IntArray? = null
+            private var indicatorColors: IntArray? = null
 
             override fun getIndicatorColor(position: Int): Int {
-                return mIndicatorColors!![position % mIndicatorColors!!.size]
+                return indicatorColors!![position % indicatorColors!!.size]
             }
 
             internal fun setIndicatorColors(vararg colors: Int) {
-                mIndicatorColors = colors
+                indicatorColors = colors
             }
         }
 
@@ -447,25 +443,24 @@ class SlidingTabLayout @JvmOverloads constructor(
 
     companion object {
 
-        private val DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS = 0
-        private val DEFAULT_BOTTOM_BORDER_COLOR_ALPHA: Byte = 0x26
-        private val SELECTED_INDICATOR_THICKNESS_DIPS = 3
-        private val DEFAULT_SELECTED_INDICATOR_COLOR = -0xcc4a1b
+        private const val DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS = 0
+        private const val DEFAULT_BOTTOM_BORDER_COLOR_ALPHA: Byte = 0x26
+        private const val SELECTED_INDICATOR_THICKNESS_DIPS = 3
+        private const val DEFAULT_SELECTED_INDICATOR_COLOR = -0xcc4a1b
 
-        private val TITLE_OFFSET_DIPS = 24
-        private val TAB_VIEW_PADDING_DIPS = 16
-        private val TAB_VIEW_TEXT_SIZE_SP = 12
+        private const val TITLE_OFFSET_DIPS = 24
+        private const val TAB_VIEW_PADDING_DIPS = 16
+        private const val TAB_VIEW_TEXT_SIZE_SP = 12
 
-        //
-        val BASE_DENSITY = 160.0f
+        private const val BASE_DENSITY = 160.0f
 
-        fun convertDpToPixel(dp: Float, context: Context): Float {
+        private fun convertDpToPixel(dp: Float, context: Context): Float {
             val resources = context.resources
             val metrics = resources.displayMetrics
             return dp * (metrics.densityDpi / BASE_DENSITY)
         }
 
-        fun convertDpToPixel(dp: Int, context: Context): Int {
+        private fun convertDpToPixel(dp: Int, context: Context): Int {
             return convertDpToPixel(dp.toFloat(), context).toInt()
         }
 
