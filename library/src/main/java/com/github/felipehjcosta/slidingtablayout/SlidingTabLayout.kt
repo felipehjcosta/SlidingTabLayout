@@ -7,18 +7,14 @@ import android.os.Build
 import android.support.annotation.IdRes
 import android.support.annotation.LayoutRes
 import android.support.v4.view.ViewPager
-import android.support.v4.widget.Space
 import android.util.AttributeSet
 import android.util.Log
 import android.util.SparseArray
 import android.util.TypedValue
 import android.view.*
-import android.widget.FrameLayout
+import android.widget.*
 import android.widget.FrameLayout.LayoutParams.MATCH_PARENT
 import android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
-import android.widget.HorizontalScrollView
-import android.widget.LinearLayout
-import android.widget.TextView
 import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer
 
 /**
