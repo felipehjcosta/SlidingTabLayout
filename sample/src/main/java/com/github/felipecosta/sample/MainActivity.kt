@@ -6,10 +6,11 @@ import android.support.v4.app.Fragment
 import android.support.v4.app.FragmentManager
 import android.support.v4.app.FragmentPagerAdapter
 import android.support.v7.app.AppCompatActivity
+import android.text.SpannableStringBuilder
 import android.view.*
+import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout
 import kotlinx.android.synthetic.main.main_activity.*
 import kotlinx.android.synthetic.main.main_fragment.view.*
-import android.text.SpannableStringBuilder
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,7 +41,7 @@ class MainActivity : AppCompatActivity() {
         container.adapter = mSectionsPagerAdapter
         slidingTabLayout.setDistributeEvenly(false)
         slidingTabLayout.setCustomTabView(R.layout.indicator_view, R.id.indicator_title)
-        slidingTabLayout.setCustomTabColorizer(object : com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer {
+        slidingTabLayout.setCustomTabColorizer(object : SlidingTabLayout.TabColorizer {
             override fun getIndicatorColor(position: Int): Int {
                 return colors[position]
             }

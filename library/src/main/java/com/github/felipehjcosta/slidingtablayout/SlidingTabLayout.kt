@@ -6,7 +6,6 @@ import android.support.annotation.IdRes
 import android.support.annotation.LayoutRes
 import android.support.v4.view.ViewPager
 import android.util.AttributeSet
-import android.util.Log
 import android.util.SparseArray
 import android.util.TypedValue
 import android.view.Gravity
@@ -235,14 +234,15 @@ class SlidingTabLayout @JvmOverloads constructor(
     }
 
     private inner class InternalViewPagerListener : ViewPager.OnPageChangeListener {
-        private var viewPagerScrollState = 0
+        private var viewPagerScrollState: Int = 0
         private var sumPositionAndPositionOffset = 0.0f
 
         override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {
             val currentSumPositionAndPositionOffset = position + positionOffset
             tabStrip.scrollState = when {
                 positionOffset == 0.0f -> ScrollState.Idle(position + 1, 0.0f)
-                currentSumPositionAndPositionOffset > sumPositionAndPositionOffset -> ScrollState.DraggingToLeft(position + 1, positionOffset)
+                currentSumPositionAndPositionOffset > sumPositionAndPositionOffset ->
+                    ScrollState.DraggingToLeft(position + 1, positionOffset)
                 else -> ScrollState.DraggingToRight(position + 1, positionOffset)
             }
             sumPositionAndPositionOffset = currentSumPositionAndPositionOffset
@@ -300,7 +300,6 @@ class SlidingTabLayout @JvmOverloads constructor(
         var scrollState: ScrollState = ScrollState.Idle(0, 0.0f)
             set(value) {
                 field = value
-                Log.e("TAG", ">>>> newState: $field")
                 invalidate()
             }
 

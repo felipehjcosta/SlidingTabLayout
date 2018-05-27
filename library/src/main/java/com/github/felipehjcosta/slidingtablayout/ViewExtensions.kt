@@ -21,6 +21,7 @@ internal fun ViewTreeObserver.removeOnGlobalLayoutListenerIncludingBellowJellyBe
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
         removeOnGlobalLayoutListener(listener)
     } else {
+        @Suppress("DEPRECATION")
         removeGlobalOnLayoutListener(listener)
     }
 }
