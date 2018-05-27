@@ -473,13 +473,13 @@ class SlidingTabLayout @JvmOverloads constructor(
             viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
                 override fun onGlobalLayout() {
                     block(this@doOnGlobalLayout)
-                    viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    viewTreeObserver.removeOnGlobalLayoutListenerIncludingBellowJellyBean(this)
                 }
             })
         }
 
         @SuppressLint("NewApi")
-        private fun ViewTreeObserver.removeOnGlobalLayoutListener(listener: ViewTreeObserver.OnGlobalLayoutListener) {
+        private fun ViewTreeObserver.removeOnGlobalLayoutListenerIncludingBellowJellyBean(listener: ViewTreeObserver.OnGlobalLayoutListener) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
                 removeOnGlobalLayoutListener(listener)
             } else {
