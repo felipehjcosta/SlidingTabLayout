@@ -373,24 +373,16 @@ class SlidingTabLayout : HorizontalScrollView {
             if (childCount > 0) {
                 val selectedTitle = getChildAt(selectedPosition)
                 var left = selectedTitle.left
-//                val right = selectedTitle.right
                 var color = tabColorizer.getIndicatorColor(selectedPosition - 1)
 
                 val nextTitle = when (scrollState) {
                     is ScrollState.Idle -> getChildAt(selectedPosition)
-                    is ScrollState.DraggingToLeft -> {
+                    else -> {
                         val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
                         if (color != nextColor) {
                             color = blendColors(nextColor, color, selectionOffset)
                         }
                         getChildAt(selectedPosition + 1)
-                    }
-                    is ScrollState.DraggingToRight -> {
-                        val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
-                        if (color != nextColor) {
-                            color = blendColors(nextColor, color, selectionOffset)
-                        }
-                        getChildAt(selectedPosition - 1)
                     }
                 }
                 val nextTitleWidth = nextTitle.width
