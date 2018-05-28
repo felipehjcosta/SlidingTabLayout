@@ -33,19 +33,12 @@ class MainActivity : AppCompatActivity() {
                 Color.parseColor("#E5615C"),
                 Color.parseColor("#40AAB9")
         )
-
-        slidingTabLayout.setSelectedIndicatorColors(*colors)
-
         mSectionsPagerAdapter = SectionsPagerAdapter(supportFragmentManager)
 
         container.adapter = mSectionsPagerAdapter
         slidingTabLayout.setDistributeEvenly(false)
         slidingTabLayout.setCustomTabView(R.layout.indicator_view, R.id.indicator_title)
-        slidingTabLayout.setCustomTabColorizer(object : SlidingTabLayout.TabColorizer {
-            override fun getIndicatorColor(position: Int): Int {
-                return colors[position]
-            }
-        })
+        slidingTabLayout.setCustomTabColorizer(SlidingTabLayout.SimpleTabColorizer(colors))
         slidingTabLayout.setViewPager(container)
 
     }

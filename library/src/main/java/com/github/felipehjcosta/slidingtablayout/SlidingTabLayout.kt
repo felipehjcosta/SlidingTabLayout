@@ -88,9 +88,9 @@ class SlidingTabLayout @JvmOverloads constructor(
      * Sets the colors to be used for indicating the selected tab. These colors are treated as a
      * circular array. Providing one color will mean that all tabs are indicated with the same color.
      */
-    fun setSelectedIndicatorColors(vararg colors: Int) {
-        tabStrip.setSelectedIndicatorColors(*colors)
-    }
+//    fun setSelectedIndicatorColors(vararg colors: Int) {
+//        tabStrip.setSelectedIndicatorColors(*colors)
+//    }
 
     /**
      * Set the custom layout to be inflated for the tab views.
@@ -303,8 +303,7 @@ class SlidingTabLayout @JvmOverloads constructor(
                 invalidate()
             }
 
-        private var customTabColorizer: SlidingTabLayout.TabColorizer? = null
-        private val defaultTabColorizer: SimpleTabColorizer
+        private var customTabColorizer: SlidingTabLayout.TabColorizer
 
         init {
             setWillNotDraw(false)
@@ -318,8 +317,7 @@ class SlidingTabLayout @JvmOverloads constructor(
             defaultBottomBorderColor = setColorAlpha(themeForegroundColor,
                     DEFAULT_BOTTOM_BORDER_COLOR_ALPHA)
 
-            defaultTabColorizer = SimpleTabColorizer()
-            defaultTabColorizer.setIndicatorColors(DEFAULT_SELECTED_INDICATOR_COLOR)
+            customTabColorizer = SimpleTabColorizer(intArrayOf(DEFAULT_SELECTED_INDICATOR_COLOR))
 
             bottomBorderThickness = (DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS * density).toInt()
             bottomBorderPaint = Paint()
@@ -339,13 +337,6 @@ class SlidingTabLayout @JvmOverloads constructor(
             return customTabColorizer
         }
 
-        fun setSelectedIndicatorColors(vararg colors: Int) {
-            // Make sure that the custom colorizer is removed
-            customTabColorizer = null
-            defaultTabColorizer.setIndicatorColors(*colors)
-            invalidate()
-        }
-
         override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             val width = measuredWidth
@@ -357,14 +348,14 @@ class SlidingTabLayout @JvmOverloads constructor(
         override fun onDraw(canvas: Canvas) {
             val height = height
             val childCount = childCount
-            val tabColorizer = customTabColorizer ?: defaultTabColorizer
+            val tabColorizer = customTabColorizer
 
             // Thick colored underline below the current selection
             val selectedPosition = scrollState.currentPosition
             val selectionOffset = scrollState.offset
             if (childCount > 0) {
                 val selectedTitle = getChildAt(selectedPosition)
-                var left = selectedTitle.left
+                var left = selectedTitle?.left ?: 0
                 var color = tabColorizer.getIndicatorColor(selectedPosition - 1)
 
                 val nextTitle = when (scrollState) {
@@ -415,18 +406,24 @@ class SlidingTabLayout @JvmOverloads constructor(
             return Color.rgb(r.toInt(), g.toInt(), b.toInt())
         }
 
-        private inner class SimpleTabColorizer : SlidingTabLayout.TabColorizer {
-            private var indicatorColors: IntArray? = null
+    }
 
-            override fun getIndicatorColor(position: Int): Int {
-                return indicatorColors!![position % indicatorColors!!.size]
-            }
+    /**
+     * Allows complete control over the colors drawn in the tab layout. Set with
+     * [.setCustomTabColorizer].
+     */
+    interface TabColorizer {
 
-            internal fun setIndicatorColors(vararg colors: Int) {
-                indicatorColors = colors
-            }
+        /**
+         * @return return the color of the indicator used when `position` is selected.
+         */
+        fun getIndicatorColor(position: Int): Int
+    }
+
+    class SimpleTabColorizer(private val indicatorColors: IntArray) : SlidingTabLayout.TabColorizer {
+        override fun getIndicatorColor(position: Int): Int {
+            return indicatorColors[position % indicatorColors.size]
         }
-
     }
 
     sealed class ScrollState(val currentPosition: Int, val offset: Float) {
@@ -461,18 +458,5 @@ class SlidingTabLayout @JvmOverloads constructor(
         private fun convertDpToPixel(dp: Int, context: Context): Int {
             return convertDpToPixel(dp.toFloat(), context).toInt()
         }
-    }
-
-    /**
-     * Allows complete control over the colors drawn in the tab layout. Set with
-     * [.setCustomTabColorizer].
-     */
-    interface TabColorizer {
-
-        /**
-         * @return return the color of the indicator used when `position` is selected.
-         */
-        fun getIndicatorColor(position: Int): Int
-
     }
 }
