@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         container.adapter = mSectionsPagerAdapter
         slidingTabLayout.setDistributeEvenly(false)
         slidingTabLayout.setCustomTabView(R.layout.indicator_view, R.id.indicator_title)
-        slidingTabLayout.setCustomTabColorizer(SlidingTabLayout.SimpleTabColorizer(colors))
+        slidingTabLayout.setTabColorizer(SlidingTabLayout.SimpleTabColorizer(colors))
         slidingTabLayout.setViewPager(container)
 
     }

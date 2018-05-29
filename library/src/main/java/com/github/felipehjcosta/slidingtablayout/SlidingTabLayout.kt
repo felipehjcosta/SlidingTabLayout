@@ -4,18 +4,28 @@ import android.content.Context
 import android.graphics.Typeface
 import android.support.annotation.IdRes
 import android.support.annotation.LayoutRes
+import android.support.v4.view.PagerAdapter
 import android.support.v4.view.ViewPager
 import android.util.AttributeSet
 import android.util.SparseArray
 import android.util.TypedValue
+import android.util.TypedValue.COMPLEX_UNIT_SP
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.*
-import android.widget.FrameLayout.LayoutParams.MATCH_PARENT
-import android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
+import android.widget.Space
+import android.widget.TextView
+import androidx.core.view.forEachIndexed
 import com.github.felipehjcosta.slidingtablayout.SlidingTabLayout.TabColorizer
+import android.view.ViewGroup.LayoutParams as ViewGroupLayoutParams
+import android.widget.LinearLayout.LayoutParams as LinearLayoutParams
+import android.widget.LinearLayout.LayoutParams.MATCH_PARENT as LinearLayoutMatchParent
+import android.widget.LinearLayout.LayoutParams.WRAP_CONTENT as LinearLayoutWrapContent
+
+//import android.widget.LinearLayout.LayoutParams.MATCH_PARENT as LinearLayoutMatchParent
+//import android.widget.LinearLayout.LayoutParams.WRAP_CONTENT as LinearLayoutWrapContent
 
 /**
  * To be used with ViewPager to provide a tab indicator component which give constant feedback as to
@@ -46,7 +56,7 @@ class SlidingTabLayout @JvmOverloads constructor(
 
     private var tabViewLayoutId = 0
     private var tabViewTextViewId = 0
-    private var distributeEvenly = false
+    private var shouldDistributeEvenly = false
 
     private var viewPager: ViewPager? = null
     private val contentDescriptions = SparseArray<String>()
@@ -55,7 +65,7 @@ class SlidingTabLayout @JvmOverloads constructor(
     private val tabStrip = SlidingTabStrip(context)
 
     init {
-        addView(tabStrip, MATCH_PARENT, WRAP_CONTENT)
+        addView(tabStrip, ViewGroupLayoutParams.MATCH_PARENT, ViewGroupLayoutParams.WRAP_CONTENT)
         // Disable the Scroll Bar
         isHorizontalScrollBarEnabled = false
         // Make sure that the Tab Strips fills this View
@@ -74,12 +84,12 @@ class SlidingTabLayout @JvmOverloads constructor(
      * [.setSelectedIndicatorColors] to achieve
      * similar effects.
      */
-    fun setCustomTabColorizer(tabColorizer: TabColorizer) {
-        tabStrip.setCustomTabColorizer(tabColorizer)
+    fun setTabColorizer(tabColorizer: TabColorizer) {
+        tabStrip.tabColorizer = tabColorizer
     }
 
     fun setDistributeEvenly(distributeEvenly: Boolean) {
-        this.distributeEvenly = distributeEvenly
+        this.shouldDistributeEvenly = distributeEvenly
     }
 
     /**
@@ -117,88 +127,96 @@ class SlidingTabLayout @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Create a default view to be used for tabs. This is called if a custom tab view is not set via
-     * [.setCustomTabView].
-     */
-    private fun createDefaultTabView(context: Context): TextView {
-        val textView = TextView(context)
-        textView.gravity = Gravity.CENTER
-        textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, TAB_VIEW_TEXT_SIZE_SP.toFloat())
-        textView.typeface = Typeface.DEFAULT_BOLD
-        textView.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-
-        val outValue = TypedValue()
-        getContext().theme.resolveAttribute(android.R.attr.selectableItemBackground,
-                outValue, true)
-        textView.setBackgroundResource(outValue.resourceId)
-        textView.setAllCaps(true)
-
-        val padding = (TAB_VIEW_PADDING_DIPS * resources.displayMetrics.density).toInt()
-        textView.setPadding(padding, padding, padding, padding)
-
-        return textView
+    private fun extractResource(resIdRes: Int): Int {
+        return with(TypedValue()) {
+            context.theme.resolveAttribute(resIdRes, this, true)
+            resourceId
+        }
     }
 
     private fun populateTabStrip() {
         val adapter = viewPager!!.adapter
         val tabClickListener = TabClickListener()
 
-        if (adapter == null || adapter.count == 0) {
+        if (adapter.isNullOrEmpty()) {
             return
         }
 
-        var i = 0
-        val count = adapter.count
-        while (i < count) {
-            var tabView: View? = null
-            var tabTitleView: TextView? = null
+        for (index in 0 until adapter!!.count) {
+            val (tabView, tabTitleView) = createTabViewAndTitleView()
 
-            if (tabViewLayoutId != 0) {
-                // If there is a custom tab view layout id set, try and inflate it
-                tabView = LayoutInflater.from(context).inflate(tabViewLayoutId, tabStrip,
-                        false)
-                tabTitleView = tabView!!.findViewById<View>(tabViewTextViewId) as TextView
+            if (shouldDistributeEvenly) {
+                distributeEvenly(tabView)
             }
 
-            if (tabView == null) {
-                tabView = createDefaultTabView(context)
-            }
-
-            if (tabTitleView == null && TextView::class.java.isInstance(tabView)) {
-                tabTitleView = tabView as TextView?
-            }
-
-            if (distributeEvenly) {
-                val lp = tabView.layoutParams as LinearLayout.LayoutParams
-                lp.width = 0
-                lp.weight = 1f
-            }
-
-            tabTitleView!!.setText(adapter.getPageTitle(i), TextView.BufferType.SPANNABLE)
-            val textColor = tabStrip.getCustomTabColorizer()!!.getIndicatorColor(i)
-            tabTitleView.setTextColor(textColor)
-            tabView.setOnClickListener(tabClickListener)
-            val desc = contentDescriptions.get(i, null)
-            if (desc != null) {
-                tabView.contentDescription = desc
-            }
+            tabTitleView?.setText(adapter.getPageTitle(index), TextView.BufferType.SPANNABLE)
+            val textColor = tabStrip.tabColorizer.getIndicatorColor(index)
+            tabTitleView?.setTextColor(textColor)
+            tabView?.setOnClickListener(tabClickListener)
+            val contentDescription = contentDescriptions.get(index, null)
+            contentDescription?.let { tabView?.contentDescription = it }
 
             tabStrip.addView(tabView)
-            if (i == viewPager!!.currentItem) {
-                tabView.isSelected = true
+            if (index == viewPager?.currentItem) {
+                tabView?.isSelected = true
             }
-            i++
         }
 
+        addSpaces()
+    }
+
+    private fun createTabViewAndTitleView(): Pair<View?, TextView?> {
+        return when {
+            shouldCreateTabViewFromLayoutId() -> createTabViewFromLayoutId()
+            else -> createDefaultTabView()
+        }
+    }
+
+    private fun shouldCreateTabViewFromLayoutId(): Boolean = tabViewLayoutId != 0
+
+    private fun createTabViewFromLayoutId(): Pair<View?, TextView?> {
+        val tabView = LayoutInflater.from(context).inflate(tabViewLayoutId, tabStrip, false)
+        val tabTitleView = tabView!!.findViewById<View>(tabViewTextViewId) as TextView
+        return Pair<View?, TextView?>(tabView, tabTitleView)
+    }
+
+    private fun createDefaultTabView(): Pair<View?, TextView?> {
+        val tabTitleView = TextView(context).apply {
+            gravity = Gravity.CENTER
+            setTextSize(COMPLEX_UNIT_SP, TAB_VIEW_TEXT_SIZE_SP)
+            typeface = Typeface.DEFAULT_BOLD
+            layoutParams = LinearLayoutParams(LinearLayoutWrapContent, LinearLayoutWrapContent)
+
+            setBackgroundResource(extractResource(android.R.attr.selectableItemBackground))
+            setAllCaps(true)
+
+            val padding = (TAB_VIEW_PADDING_DIPS * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+        }
+        return Pair<View?, TextView?>(tabTitleView, tabTitleView)
+    }
+
+    private fun distributeEvenly(tabView: View?) {
+        (tabView?.layoutParams as LinearLayout.LayoutParams).let {
+            it.width = 0
+            it.weight = 1.0f
+        }
+    }
+
+    private fun PagerAdapter?.isNullOrEmpty(): Boolean = this == null || this.count == 0
+
+    private fun addSpaces() {
         tabStrip.doOnGlobalLayout {
-            val firstView = it.getChildAt(0)
-            val lastView = it.getChildAt(tabStrip.childCount - 1)
-            it.addView(Space(context), 0,
-                    FrameLayout.LayoutParams((right - firstView.width) / 2, ViewGroup.LayoutParams.WRAP_CONTENT))
-            it.addView(Space(context),
-                    FrameLayout.LayoutParams((right - lastView.width) / 2, ViewGroup.LayoutParams.WRAP_CONTENT))
+            val firstIndex = 0
+            val lastIndex = tabStrip.childCount - 1
+            val firstView = it.getChildAt(firstIndex)
+            val lastView = it.getChildAt(lastIndex)
+            val firstWidth = (right - firstView.width) / 2
+            val lastWidth = (right - lastView.width) / 2
+            val firstLayoutParams = LinearLayoutParams(firstWidth, LinearLayoutParams.WRAP_CONTENT)
+            val lastLayoutParams = LinearLayoutParams(lastWidth, LinearLayoutParams.WRAP_CONTENT)
+            it.addView(Space(context), 0, firstLayoutParams)
+            it.addView(Space(context), lastLayoutParams)
         }
     }
 
@@ -220,8 +238,7 @@ class SlidingTabLayout @JvmOverloads constructor(
             return
         }
 
-        val selectedChild = tabStrip.getChildAt(tabIndex)
-        if (selectedChild != null) {
+        tabStrip.getChildAt(tabIndex)?.let { selectedChild ->
             val center = width / 2
             val viewLeft = selectedChild.left
             val viewWidth = selectedChild.width
@@ -258,23 +275,16 @@ class SlidingTabLayout @JvmOverloads constructor(
         }
 
         override fun onPageSelected(position: Int) {
-//            if (viewPagerScrollState == ViewPager.SCROLL_STATE_IDLE) {
-//                val selectedView = tabStrip.getChildAt(position + 1)
-//                tabStrip.scrollState = ScrollState.Idle(position + 1, (selectedView.width / 2).toFloat())
-//                scrollToTab(position + 1, 0)
-//            }
-            for (i in 1 until tabStrip.childCount) {
-                tabStrip.getChildAt(i).isSelected = position == i
-            }
+            tabStrip.forEachIndexed { index, view -> view.isSelected = (position == index) }
         }
     }
 
     private inner class TabClickListener : View.OnClickListener {
-        override fun onClick(v: View) {
-            for (i in 1 until tabStrip.childCount) {
-                if (v === tabStrip.getChildAt(i)) {
-                    viewPager!!.currentItem = i - 1
-                    return
+        override fun onClick(clickView: View) {
+            tabStrip.forEachIndexed { index, view ->
+                if (clickView === view) {
+                    viewPager?.currentItem = index - 1
+                    return@forEachIndexed
                 }
             }
         }
@@ -282,7 +292,7 @@ class SlidingTabLayout @JvmOverloads constructor(
 
     /**
      * Allows complete control over the colors drawn in the tab layout. Set with
-     * [.setCustomTabColorizer].
+     * [.setTabColorizer].
      */
     interface TabColorizer {
 
@@ -311,6 +321,6 @@ class SlidingTabLayout @JvmOverloads constructor(
     companion object {
         private const val TITLE_OFFSET_DIPS = 24
         private const val TAB_VIEW_PADDING_DIPS = 16
-        private const val TAB_VIEW_TEXT_SIZE_SP = 12
+        private const val TAB_VIEW_TEXT_SIZE_SP = 12.0f
     }
 }

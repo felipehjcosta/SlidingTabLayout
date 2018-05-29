@@ -33,7 +33,12 @@ internal class SlidingTabStrip @JvmOverloads constructor(
             invalidate()
         }
 
-    private var customTabColorizer: SlidingTabLayout.TabColorizer
+    internal var tabColorizer: SlidingTabLayout.TabColorizer = SlidingTabLayout
+            .SimpleTabColorizer(intArrayOf(DEFAULT_SELECTED_INDICATOR_COLOR))
+        set(value) {
+            field = value
+            invalidate()
+        }
 
     init {
         setWillNotDraw(false)
@@ -49,7 +54,7 @@ internal class SlidingTabStrip @JvmOverloads constructor(
         defaultBottomBorderColor = setColorAlpha(themeForegroundColor,
                 DEFAULT_BOTTOM_BORDER_COLOR_ALPHA)
 
-        customTabColorizer = SlidingTabLayout.SimpleTabColorizer(intArrayOf(DEFAULT_SELECTED_INDICATOR_COLOR))
+        tabColorizer = SlidingTabLayout.SimpleTabColorizer(intArrayOf(DEFAULT_SELECTED_INDICATOR_COLOR))
 
         bottomBorderThickness = (DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS * density).toInt()
         bottomBorderPaint = Paint()
@@ -58,15 +63,6 @@ internal class SlidingTabStrip @JvmOverloads constructor(
         selectedIndicatorThickness = (SELECTED_INDICATOR_THICKNESS_DIPS * density).toInt()
         selectedIndicatorPaint = Paint()
         path = Path()
-    }
-
-    fun setCustomTabColorizer(customTabColorizer: SlidingTabLayout.TabColorizer) {
-        this.customTabColorizer = customTabColorizer
-        invalidate()
-    }
-
-    fun getCustomTabColorizer(): SlidingTabLayout.TabColorizer? {
-        return customTabColorizer
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -80,7 +76,7 @@ internal class SlidingTabStrip @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         val height = height
         val childCount = childCount
-        val tabColorizer = customTabColorizer
+        val tabColorizer = tabColorizer
 
         // Thick colored underline below the current selection
         val selectedPosition = scrollState.currentPosition
