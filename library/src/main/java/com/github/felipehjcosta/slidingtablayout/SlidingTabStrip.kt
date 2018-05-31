@@ -25,7 +25,7 @@ internal class SlidingTabStrip @JvmOverloads constructor(
 
     private val defaultBottomBorderColor: Int
 
-    private val path: Path
+    private val path: Path = Path()
 
     var scrollState: SlidingTabLayout.ScrollState = SlidingTabLayout.ScrollState.Idle(0, 0.0f)
         set(value) {
@@ -45,24 +45,23 @@ internal class SlidingTabStrip @JvmOverloads constructor(
 
         footerIndicatorHeight = convertDpToPixel(20, context).toFloat()
 
+
+        val foregroundColor = extractDataFromTheme(android.R.attr.colorForeground)
+        defaultBottomBorderColor = setColorAlpha(foregroundColor, DEFAULT_BOTTOM_BORDER_COLOR_ALPHA)
+
         val density = resources.displayMetrics.density
-
-        val outValue = TypedValue()
-        context.theme.resolveAttribute(android.R.attr.colorForeground, outValue, true)
-        val themeForegroundColor = outValue.data
-
-        defaultBottomBorderColor = setColorAlpha(themeForegroundColor,
-                DEFAULT_BOTTOM_BORDER_COLOR_ALPHA)
-
-        tabColorizer = SlidingTabLayout.SimpleTabColorizer(intArrayOf(DEFAULT_SELECTED_INDICATOR_COLOR))
-
         bottomBorderThickness = (DEFAULT_BOTTOM_BORDER_THICKNESS_DIPS * density).toInt()
-        bottomBorderPaint = Paint()
-        bottomBorderPaint.color = defaultBottomBorderColor
+        bottomBorderPaint = Paint().apply { color = defaultBottomBorderColor }
 
         selectedIndicatorThickness = (SELECTED_INDICATOR_THICKNESS_DIPS * density).toInt()
         selectedIndicatorPaint = Paint()
-        path = Path()
+    }
+
+    private fun extractDataFromTheme(resIdRes: Int): Int {
+        return with(TypedValue()) {
+            context.theme.resolveAttribute(resIdRes, this, true)
+            data
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -74,43 +73,58 @@ internal class SlidingTabStrip @JvmOverloads constructor(
     }
 
     override fun onDraw(canvas: Canvas) {
-        val height = height
-        val childCount = childCount
-        val tabColorizer = tabColorizer
+        if (childCount > 0) {
+            val color = getIndicatorColor(scrollState)
+            val startX = getIndicatorStartX(scrollState)
+            drawIndicator(canvas, color, startX)
+        }
+    }
 
-        // Thick colored underline below the current selection
+    private fun getIndicatorStartX(scrollState: SlidingTabLayout.ScrollState): Int {
         val selectedPosition = scrollState.currentPosition
         val selectionOffset = scrollState.offset
-        if (childCount > 0) {
-            val selectedTitle = getChildAt(selectedPosition)
-            var left = selectedTitle?.left ?: 0
-            var color = tabColorizer.getIndicatorColor(selectedPosition - 1)
+        val selectedTitle = getChildAt(selectedPosition)
+        val left = selectedTitle?.left ?: 0
 
-            val nextTitle = when (scrollState) {
-                is SlidingTabLayout.ScrollState.Idle -> getChildAt(selectedPosition)
-                else -> {
-                    val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
-                    if (color != nextColor) {
-                        color = blendColors(nextColor, color, selectionOffset)
-                    }
-                    getChildAt(selectedPosition + 1)
+        val nextTitle = getNextTitleView(scrollState)
+        val nextTitleWidth = nextTitle.width
+        return (selectionOffset * nextTitle.left + (1.0f - selectionOffset) * left).toInt() + nextTitleWidth / 2
+    }
+
+    private fun getIndicatorColor(scrollState: SlidingTabLayout.ScrollState): Int {
+        val selectedPosition = scrollState.currentPosition
+        val selectionOffset = scrollState.offset
+        var color = tabColorizer.getIndicatorColor(selectedPosition - 1)
+        return when (scrollState) {
+            is SlidingTabLayout.ScrollState.Idle -> color
+            else -> {
+                val nextColor = tabColorizer.getIndicatorColor(selectedPosition)
+                if (color != nextColor) {
+                    color = blendColors(nextColor, color, selectionOffset)
                 }
+                color
             }
-            val nextTitleWidth = nextTitle.width
-            left = (selectionOffset * nextTitle.left + (1.0f - selectionOffset) * left).toInt() + nextTitleWidth / 2
-
-            selectedIndicatorPaint.color = color
-            val footerLineHeight = 0f
-            val heightMinusLine = height - footerLineHeight
-
-            path.reset()
-            path.moveTo(left.toFloat(), heightMinusLine - footerIndicatorHeight)
-            path.lineTo(left + footerIndicatorHeight, heightMinusLine)
-            path.lineTo(left - footerIndicatorHeight, heightMinusLine)
-            path.close()
-            canvas.drawPath(path, selectedIndicatorPaint)
         }
+    }
 
+    private fun getNextTitleView(scrollState: SlidingTabLayout.ScrollState) = when (scrollState) {
+        is SlidingTabLayout.ScrollState.Idle -> getChildAt(scrollState.currentPosition)
+        else -> getChildAt(scrollState.currentPosition + 1)
+    }
+
+    private fun drawIndicator(canvas: Canvas, color: Int, startX: Int) {
+        selectedIndicatorPaint.color = color
+        val footerLineHeight = 0.0f
+        val heightMinusLine = height - footerLineHeight
+
+        path.apply {
+            reset()
+            moveTo(startX.toFloat(), heightMinusLine - footerIndicatorHeight)
+            lineTo(startX + footerIndicatorHeight, heightMinusLine)
+            lineTo(startX - footerIndicatorHeight, heightMinusLine)
+            close()
+        }
+        canvas.drawPath(path, selectedIndicatorPaint)
     }
 
     /**
