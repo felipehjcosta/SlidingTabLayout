@@ -1,8 +1,15 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.novoda.bintray-release'
 
-repositories {
-    google()
+
+publish {
+    userOrg = 'fcostaa'
+    groupId = 'com.github.felipehjcosta'
+    artifactId = 'slidingtablayout'
+    publishVersion = '1.0.0'
+    desc = 'SlidingTabLayout'
+    website = 'https://github.com/felipehjcosta/SlidingTabLayout'
 }
 
 android {
