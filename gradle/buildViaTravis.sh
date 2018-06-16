@@ -5,5 +5,5 @@ if [ "$TRAVIS_TAG" != "" ]; then
   ./gradlew clean build bintrayUpload -PbintrayUser="${BINTRAY_USER}" -PbintrayKey="${BINTRAY_PASSWORD}" -PdryRun=false --console=plain
 else
   echo -e 'Normal Build => Branch ['$TRAVIS_BRANCH']'
-  ./gradlew clean build bintrayUpload --console=plain
+  ./gradlew clean build --console=plain
 fi
