@@ -1,7 +1,19 @@
 language: android
 
+sudo: false
+
 jdk:
   - oraclejdk8
+
+cache:
+  directories:
+
+    # Gradle dependencies
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+
+    # Android build cache (see http://tools.android.com/tech-docs/build-cache)
+    - $HOME/.android/build-cache
 
 android:
  components:
@@ -40,17 +52,4 @@ before_script:
 #  - adb devices
 #  - adb shell input keyevent 82 &
 
-script:
-  - "./gradlew clean build"
-
-sudo: false
-
-cache:
-  directories:
-
-    # Gradle dependencies
-    - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
-
-    # Android build cache (see http://tools.android.com/tech-docs/build-cache)
-    - $HOME/.android/build-cache
+script: gradle/buildViaTravis.sh

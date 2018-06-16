@@ -24,9 +24,6 @@ import android.widget.LinearLayout.LayoutParams as LinearLayoutParams
 import android.widget.LinearLayout.LayoutParams.MATCH_PARENT as LinearLayoutMatchParent
 import android.widget.LinearLayout.LayoutParams.WRAP_CONTENT as LinearLayoutWrapContent
 
-//import android.widget.LinearLayout.LayoutParams.MATCH_PARENT as LinearLayoutMatchParent
-//import android.widget.LinearLayout.LayoutParams.WRAP_CONTENT as LinearLayoutWrapContent
-
 /**
  * To be used with ViewPager to provide a tab indicator component which give constant feedback as to
  * the user's scroll progress.
